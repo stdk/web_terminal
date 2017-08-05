@@ -1,0 +1,66 @@
+<!doctype html>
+<html>
+  <head>
+    <link rel="stylesheet" href="xterm.js/xterm.css" />
+    <style media="screen" type="text/css">
+    #list {
+      height: 10vh;
+    }
+    #list button {
+      font-size: 5vh;
+    }
+
+    #terminal {
+      width: auto;
+      height: 90vh;
+    }
+
+    </style>
+    <script src="xterm.js/xterm.js"></script>
+    <script src="xterm.js/addons/fit/fit.js"></script>
+    <script src="xterm.js/addons/attach/attach.js"></script>
+  </head>
+  <body>
+    <div id='list'></div>
+    <div id="terminal"></div>
+    <script>
+      var term = new Terminal({
+        cursorBlink: false,  // Do not blink the terminal's cursor
+      })
+
+      term.open(document.getElementById('terminal'))
+      term.fit()
+
+      var ws_base_path = 'ws://' + location.host + '/ws'
+
+      var ws = new WebSocket(ws_base_path + '/list')
+      ws.addEventListener('message',function(event) {
+        var response = JSON.parse(event.data)
+        console.log(response)
+        available = response.available
+        list_element = document.getElementById('list')
+        for(var i=0;i<available.length;++i) {
+          list.innerHTML += '<button class="console_button" type="button">' +
+           available[i].title + '</button>'
+        }
+        var buttons = document.getElementsByClassName('console_button')
+        for(var i=0;i<buttons.length;++i) {
+          var button = buttons[i]
+          var path = available[i].path
+          button.addEventListener('click',function(path) {
+              return function() {
+                term.detach()
+                term.clear()
+                term.reset()
+                
+                var console_ws = new WebSocket(ws_base_path + path)
+                term.attach(console_ws)
+
+                term.focus()
+              }
+          }(path))
+        }        
+      })
+    </script>
+  </body>
+</html>
