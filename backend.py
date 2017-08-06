@@ -17,20 +17,46 @@ async def ws_list(request):
     ws = web.WebSocketResponse()
     await ws.prepare(request)
 
+    available = [
+        {
+            'path':'/pty?cmd=bash',
+            'title': 'bash',
+        },
+        {
+            'path':'/pty?cmd=ping',
+            'title': 'ping'
+        }
+    ]
+
     response = {
-        'available': [
-            {
-                'path':'/pty?cmd=bash',
-                'title': 'bash',
-            },
-            {
-                'path':'/pty?cmd=ping',
-                'title': 'ping'
-            }
-        ],
+        'available': available
     }
+
+    for idx in ws_app['remote_manager'].get_available():
+        available.append({
+            'title': 'remote{}'.format(idx),
+            'path': '/remote?idx={}'.format(idx)
+        })
+
+    print('response',response)
     
     ws.send_str(json.dumps(response))
+
+    return ws
+
+async def ws_remote(request):
+    ws = web.WebSocketResponse()
+    await ws.prepare(request)
+
+    idx = request.query['idx']
+    remote_manager = request.app['remote_manager']
+    writer = remote_manager.new_ws_client(idx,ws)
+
+    async for msg in ws:
+        print('!',repr(msg.data))
+        if writer.transport.is_closing():
+            break
+        writer.write(msg.data.encode('utf-8'))
 
     return ws
 
@@ -63,14 +89,57 @@ async def ws_pty(request):
 
     return ws
 
+class RemoteManager(object):
+    def __init__(self):
+        self.idx = 0
+        self.consoles = {}
+
+    def get_available(self):
+        return [key for key in self.consoles]
+
+    def new_ws_client(self,idx,ws_client):
+        writer,ws_clients = self.consoles[idx]
+        ws_clients.append(ws_client)
+        return writer
+
+    async def new_remote(self,reader,writer):
+        self.idx += 1
+        idx = str(self.idx)
+        self.consoles[idx] = [writer,[]]
+        while True:
+            data = await reader.read(1024)
+            print('!',repr(data))
+            if len(data) == 0:
+                break
+
+            ws_clients = self.consoles[idx][1]
+            for ws_client in ws_clients:
+                ws_client.send_str(data.decode('utf-8'))
+
+        ws_clients = self.consoles[idx][1]
+        for ws_client in ws_clients:
+            ws_client.send_str('\r\nConnection closed')
+
+        del self.consoles[idx]
+
+
 ws_app = web.Application()
 ws_app.router.add_route('*','/list',ws_list)
 ws_app.router.add_route('*','/pty',ws_pty)
+ws_app.router.add_route('*','/remote',ws_remote)
+ws_app['remote_manager'] = RemoteManager()
 
 app = web.Application()
 app.add_subapp('/ws',ws_app)
 app.router.add_static('/xterm.js', 'xterm.js')
 app.router.add_get('/',main)
 
+loop = asyncio.get_event_loop()
+remote_server = asyncio.start_server(
+    ws_app['remote_manager'].new_remote,
+    '0.0.0.0', 8888,
+    loop=loop
+)
+loop.create_task(remote_server)
 
 web.run_app(app,host='0.0.0.0',port=8000)
