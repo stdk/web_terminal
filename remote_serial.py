@@ -4,8 +4,10 @@ import serial_asyncio
 import sys
 import os
 
-async def tcp_remote_client(port, loop):
+async def tcp_remote_client(port, title, loop):
     reader, writer = await asyncio.open_connection('127.0.0.1', 8888, loop=loop)
+
+    writer.write('{}\n'.format(title).encode('utf-8'))
 
     class TransportNotifier(object):
         def __init__(self):
@@ -54,6 +56,17 @@ async def tcp_remote_client(port, loop):
 
     writer.close()
 
-loop = asyncio.get_event_loop()
-loop.run_until_complete(tcp_remote_client('/dev/ttyUSB1', loop))
-loop.close()
+
+if __name__ == '__main__':
+    import argv 
+    import sys
+    if len(argv) < 3:
+        print('Usage: {} <serial_port> <title>'.format(argv[0]))
+        sys.exit()
+
+    port = argv[1]
+    title = argv[2]
+
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(tcp_remote_client(port, title, loop))
+    loop.close()
