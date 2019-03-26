@@ -1,3 +1,9 @@
+#!/bin/bash
+
+WORKDIR=$(dirname $(readlink -f $0))
+
+cd $WORKDIR
+
 . pdev/bin/activate
 
 mkdir -p logs
@@ -24,28 +30,33 @@ daemon() {
     status)
         printf "$title: "
         start-stop-daemon -T -p "$pid"
-        [ "$?" -eq "0" ] && echo "running" || echo "stopped" 
+        [ "$?" -eq "0" ] && echo "running" || echo "stopped"
         ;;
-    esac      
+    esac
 
 }
+
+ports="dut1 dut2"
 
 case "$1" in
 start)
     daemon start backend python backend.py
     sleep 2
-    daemon start serial1 python remote_serial.py /dev/ttyUSB0 serial1
-    daemon start serial2 python remote_serial.py /dev/ttyUSB1 serial2
+    for dev in $ports; do
+        daemon start $dev python remote_serial.py /dev/$dev $dev
+    done
     ;;
 stop)
-    daemon stop serial1
-    daemon stop serial2
+    for dev in $ports; do
+        daemon stop $dev
+    done
     daemon stop backend
     ;;
 status)
     daemon status backend
-    daemon status serial1
-    daemon status serial2
+    for dev in $ports; do
+        daemon status $dev
+    done
     ;;
 restart)
     $0 stop
