@@ -42,7 +42,7 @@ async def tcp_remote_client(port, title, loop):
             self.writer.write(b'Serial connection lost.')
             self.notifier.connection_lost()
 
-    coroutine = serial_asyncio.create_serial_connection(loop,lambda: Output(writer,notifier), port, baudrate=115200)
+    coroutine = serial_asyncio.create_serial_connection(loop,lambda: Output(writer,notifier), port, baudrate=115200, rtscts=False)
     asyncio.ensure_future(coroutine,loop=loop)
 
     while True:
