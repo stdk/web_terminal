@@ -7,15 +7,18 @@ daemon() {
     title=$2
     pid="$title.pid"
     shift 2
+    cmd="$@"
     case "$action" in
     start)
         printf "Starting $title... "
-        start-stop-daemon -S -b -m -p "$pid" -d `pwd` --startas /bin/bash -- -c "exec "$@" > logs/$app.log 2>&1"
+        echo start-stop-daemon -S -b -m -p "$pid" -d `pwd` --startas /bin/bash -- -c "exec $cmd > logs/$title.log 2>&1"
+        start-stop-daemon -S -b -m -p "$pid" -d `pwd` --startas /bin/bash -- -c "exec $cmd > logs/$title.log 2>&1"
         echo OK
         ;;
     stop)
         printf "Stopping $title... "
         start-stop-daemon -K -p "$pid"
+        rm -f "$pid"
         echo OK
         ;;
     status)
@@ -29,13 +32,14 @@ daemon() {
 
 case "$1" in
 start)
-    daemon start backend backend.py
+    daemon start backend python backend.py
     sleep 2
     daemon start serial1 python remote_serial.py /dev/ttyUSB0 serial1
     daemon start serial2 python remote_serial.py /dev/ttyUSB1 serial2
     ;;
 stop)
     daemon stop serial1
+    daemon stop serial2
     daemon stop backend
     ;;
 status)

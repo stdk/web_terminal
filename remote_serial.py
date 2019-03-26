@@ -58,14 +58,13 @@ async def tcp_remote_client(port, title, loop):
 
 
 if __name__ == '__main__':
-    import argv 
     import sys
-    if len(argv) < 3:
-        print('Usage: {} <serial_port> <title>'.format(argv[0]))
+    if len(sys.argv) < 3:
+        print('Usage: {} <serial_port> <title>'.format(sys.argv[0]))
         sys.exit()
 
-    port = argv[1]
-    title = argv[2]
+    port = sys.argv[1]
+    title = sys.argv[2]
 
     loop = asyncio.get_event_loop()
     loop.run_until_complete(tcp_remote_client(port, title, loop))
