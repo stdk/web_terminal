@@ -30,7 +30,7 @@ async def ws_list(request):
         })
 
     print('response',response)
-    
+
     ws.send_str(json.dumps(response))
 
     return ws
@@ -46,7 +46,12 @@ async def ws_remote(request):
 
     title = request.query['title']
     remote_manager = request.app['remote_manager']
-    writer = remote_manager.new_ws_client(title,ws)
+    writer = remote_manager.new_ws_client(title, ws)
+
+    if writer is None:
+        print('Title[{}] not found'.format(title))
+        await ws.close()
+        return ws
 
     async for msg in ws:
         print('!',repr(msg.data))
@@ -93,6 +98,9 @@ class RemoteManager(object):
         return [key for key in self.consoles]
 
     def new_ws_client(self,title,ws_client):
+        if title not in self.consoles:
+           return None
+
         writer,ws_clients = self.consoles[title]
         ws_clients.append(ws_client)
         return writer
