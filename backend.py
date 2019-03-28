@@ -135,7 +135,8 @@ ws_app['remote_manager'] = RemoteManager()
 
 app = web.Application()
 app.add_subapp('/ws',ws_app)
-app.router.add_static('/xterm.js', 'xterm.js')
+app.router.add_static('/node_modules', 'node_modules')
+app.router.add_static('/js', 'js')
 app.router.add_get(r'/{name:\w*}',main)
 
 loop = asyncio.get_event_loop()
