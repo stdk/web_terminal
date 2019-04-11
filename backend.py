@@ -87,6 +87,11 @@ async def ws_remote(request):
             break
         writer.write(msg.data.encode('utf-8'))
 
+    print("[{}][{}] no more messages".format(title,request))
+    remote_manager.remove_ws_client(title, ws)
+
+    await ws.close()
+
     return ws
 
 async def ws_pty(request):
@@ -148,7 +153,16 @@ class RemoteManager(object):
 
         writer,ws_clients = self.consoles[title]
         ws_clients.append(ws_client)
+        print('clients for[{}]:[{}]'.format(title,ws_clients))
         return writer
+
+    def remove_ws_client(self, title, ws_client):
+        if title not in self.consoles:
+            return
+
+        writer,ws_clients = self.consoles[title]
+        ws_clients.remove(ws_client)
+        print('clients for[{}]:[{}]'.format(title,ws_clients))
 
     async def new_remote(self,reader,writer):
         title = await reader.readline()
@@ -162,8 +176,10 @@ class RemoteManager(object):
                 break
 
             ws_clients = self.consoles[title][1]
+
             for ws_client in ws_clients:
-                await ws_client.send_str(data.decode('utf-8', 'replace'))
+                if not ws_client.closed:
+                    await ws_client.send_str(data.decode('utf-8', 'replace'))
 
         ws_clients = self.consoles[title][1]
         for ws_client in ws_clients:
