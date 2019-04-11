@@ -14,32 +14,32 @@ start() {
 
     for device in $devices; do
         local title=`basename $device`
-        daemon start $title python remote_serial.py $device $title
+        daemon start $title python remote_serial.py -D $device -t $title
     done
 }
 
 stop() {
     if [ ! -z "$@" ]; then
-        pids="$@"
+        devices="$@"
     else
-        pids=`ls $WORKDIR/dut*.pid 2>/dev/null`
+	devices=`ls /dev/dut* 2>/dev/null`
     fi
 
-    for pid in $pids; do
-        title=`basename $pid | awk -F '.' '{ printf $1 }'`
+    for device in $devices; do
+        local title=`basename $device`
         daemon stop $title
     done
 }
 
 status() {
     if [ ! -z "$@" ]; then
-        pids="$@"
+        devices="$@"
     else
-        pids=`ls $WORKDIR/dut*.pid 2>/dev/null`
+	devices=`ls /dev/dut* 2>/dev/null`
     fi
 
-    for pid in $pids; do
-        title=`basename $pid | awk -F '.' '{ printf $1 }'`
+    for device in $devices; do
+        local title=`basename $device`
         daemon status $title
     done
 }

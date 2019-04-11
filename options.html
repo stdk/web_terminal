@@ -1,0 +1,91 @@
+<!doctype html>
+<html>
+  <head>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <style media="screen" type="text/css">
+      body {
+        background: #282a36;
+        color: #f8f8f2;
+        font-size: 16px;
+        text-rendering: optimizeLegibility;
+        font-family: "Roboto Condensed", "Roboto", "Segoe UI", Arial, sand-serif;
+        font-weight: 400;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      .content-block {
+        padding: 14px;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        border: 2px solid rgba(255,255,255,.05);
+        box-shadow 0 14px 28px rgba(0,0,0,.25), 0 10px 10px rgba(0,0,0,.22);
+        background: rgba(255,255,255,.05);
+        margin: 1%;     
+      }
+      h1 {
+        text-align: center;
+        font-size: 32px;
+      }
+      .inputs {
+        margin: 15px;
+
+      }
+      input[type=number] {
+        background-color: gray;
+        border: none;
+        color: white;
+        padding: 10px 10px;
+        text-decoration: none;
+        margin: 4px 2px;
+        font-size: 30px;
+        size: 10;
+        -webkit-appearance: none;
+        border-radius: 2px;
+      }
+      select {
+        height: 30px;
+        width: 100px;
+        border-radius: 2px;
+      }
+
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="content-block">
+        <h1>Font Size</h1>
+        Select font size for your console sessions
+        <div class="inputs">
+          <input id="fontSize" type="number" min="10" max="32" value="14"/>
+        </div>
+      </section>
+      <section id="fontFamily" class="content-block">
+        <h1>Font Family</h1>
+        Choose font family for your console sessions
+        <div class="inputs">
+          <select>
+            <option value="default">Default</option>
+            <option value="green">Green</option>
+          </select>
+        </div>
+      </section>
+      <section id="colorTheme" class="content-block">
+        <h1>Color Theme</h1>
+        Select color theme for your console sessions
+        <div class="inputs">
+          <select>
+            <option value="default">Default</option>
+            <option value="green">Green</option>
+          </select>
+        </div>
+       </section>
+    </main>
+    <script src="js/options.js"></script>
+    <link href="https://fonts.googleapis.com/css?family=Roboto+Condensed:400,400i,700,700i|Roboto Mono" rel="stylesheet">
+  </body>
+</html>

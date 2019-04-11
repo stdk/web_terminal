@@ -1,23 +1,32 @@
 <!doctype html>
 <html>
   <head>
-    <link rel="stylesheet" href="node_modules/xterm/dist/xterm.css" />
+    <link rel="stylesheet" href="xterm.js/xterm.css" />
     <style media="screen" type="text/css">
     #list button {
       font-size: 5vh;
     }
 
     #terminal {
+      font-size: 2vh;
       width: auto;
       height: 97vh;
     }
 
+    #list {
+      display: flex;
+      flex-direction: row;
+    }
+
     </style>
-    <script src="node_modules/xterm/xterm.js"></script>
+    <script src="xterm.js/xterm.js"></script>
+    <script src="xterm.js/addons/fit/fit.js"></script>
+    <script src="xterm.js/addons/attach/attach.js"></script>
   </head>
   <body>
     <div id='list'></div>
     <div id="terminal"></div>
+    <script src="js/theme.js"></script>
     <script src="js/main.js"></script>
   </body>
 </html>

@@ -1,7 +1,15 @@
 (function() {
+  Terminal.applyAddon(fit)
+  Terminal.applyAddon(attach)
+
   var term = new Terminal({
-    cursorBlink: false,  // Do not blink the terminal's cursor
+    cursorStyle: "block",
+    "fontSize": localStorage.fontSize || 16,
+    "fontFamily": localStorage.fontFamily || "Monospace",
+    "theme": document.themes[localStorage.theme] || {}
   })
+
+  //term.setOption('theme', theme);
 
   window.onresize = function(event) {
     term.fit()
@@ -25,13 +33,44 @@
     term.fit()
 
     var ws = new WebSocket(ws_base_path + '/list')
+    ws.addEventListener('open', function(event) {
+      ws.send(JSON.stringify({
+        action:'get'
+      }))
+    })
+
     ws.addEventListener('message',function(event) {
       var response = JSON.parse(event.data)
       console.log(response)
+
+      list_element.innerHTML = ''
+
       available = response.available
       for(var i=0;i<available.length;++i) {
-        list_element.innerHTML += '<button class="console_button" type="button">' +
-         available[i].title + '</button>'
+        let entry = available[i]
+        let title = entry.title
+        let comment = entry.comment
+        list_element.innerHTML += '<div><div id="comment_' + title + '" contenteditable="true">' +
+                                  comment +
+                                  '</div>' +
+                                  '<button class="console_button" type="button">' + 
+                                  title + 
+                                  '</button>' +
+                                  '</div>'
+      }
+
+      for(var i=0;i<available.length;++i) {
+        let entry = available[i]
+        let title = entry.title
+        let comment_element = document.getElementById("comment_" + title)
+        comment_element.addEventListener("input", function() {
+          let comment = comment_element.innerText
+          ws.send(JSON.stringify({
+            action: 'set',
+            title: title,
+            comment: comment
+          }))
+        }, false);
       }
       var buttons = document.getElementsByClassName('console_button')
       for(var i=0;i<buttons.length;++i) {
@@ -59,6 +98,6 @@
     var console_ws = new WebSocket(ws_base_path + '/remote?title=' + location.pathname.substr(1))
     term.attach(console_ws)
 
-    term.focus()
+    term.focus({"focus": true})
   }
 })()
