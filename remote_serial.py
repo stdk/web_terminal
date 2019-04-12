@@ -1,66 +1,119 @@
 import asyncio
+import serial
 import serial_asyncio
 
-async def tcp_remote_client(device, title, loop,
-                            backend_hostname, backend_port, serial_args):
+class Writer(object):
+    def __init__(self,device,loop):
+        self.device = device
+        self.loop = loop
+        self.transport = None
+        self.reset()
 
-    reader, writer = await asyncio.open_connection(backend_hostname, backend_port, loop=loop)
+    def connection_made(self, transport):
+        print('device[{}]: connection made [{}]'.format(self.device,transport))
+        self.transport = transport
 
+    def connection_lost(self):
+        print('device[{}]: connection lost'.format(self.device))
+        self.transport = None
+        self._lost.set_result(True)
+
+    def write(self, *args, **kwargs):
+        if self.transport is not None:
+            return self.transport.write(*args,**kwargs)
+
+    def lost(self):
+        return self._lost
+
+    def reset(self):
+        self._lost = asyncio.Future(loop=self.loop)
+
+class Protocol(asyncio.Protocol):
+    def __init__(self, backend_writer, device_writer):
+        self.backend_writer = backend_writer
+        self.device_writer = device_writer
+
+    def connection_made(self, transport):
+        self.backend_writer.write(b'\r\nSerial connection established.\r\n')
+        self.device_writer.connection_made(transport)
+
+    def data_received(self, data):
+        #print('data received', repr(data))
+        self.backend_writer.write(data)
+
+    def connection_lost(self, exc):
+        self.backend_writer.write(b'\r\nSerial connection lost.\r\n')
+        self.device_writer.connection_lost()
+
+
+async def connect_to_backend(host, port, title, loop):
+    reader,writer = await asyncio.open_connection(host,port,loop=loop)
     writer.write('{}\n'.format(title).encode('utf-8'))
 
-    class TransportNotifier(object):
-        def __init__(self):
-            self.transport = None
+    return reader,writer
 
-        def connection_made(self, transport):
-            self.transport = transport
 
-        def connection_lost(self):
-            self.transport = None
+async def device_watcher(args, device_writer, backend_writer, loop):
+    while True:
+        print('connection to serial device[{}]'.format(args.device))
+        coroutine = serial_asyncio.create_serial_connection(
+            loop,
+            lambda: Protocol(backend_writer, device_writer),
+            args.device,
+            baudrate=args.baudrate,
+            rtscts=False
+        )
 
-    notifier = TransportNotifier()
+        try:
+            await coroutine
+        except serial.serialutil.SerialException:
+            print('file not found')
+            await asyncio.sleep(2)
+            continue
 
-    class Output(asyncio.Protocol):
-        def __init__(self, writer, notifier):
-            self.writer = writer
-            self.notifier = notifier
+        print('waiting for lost connection')
+        await device_writer.lost()
+        print('connection has been lost')
+        device_writer.reset()
+        await asyncio.sleep(2)
+        
 
-        def connection_made(self, transport):
-            self.transport = transport
-            print('device[{}]: opened'.format(device), transport)
-            transport.serial.rts = False
-            self.notifier.connection_made(transport)
+async def server(args,loop):
+    backend_writer = Writer('backend',loop)
+    device_writer = Writer(args.device,loop)
 
-        def data_received(self, data):
-            #print('data received', repr(data))
-            self.writer.write(data)
-
-        def connection_lost(self, exc):
-            print('device[{}]: closed'.format(device))
-            asyncio.get_event_loop().stop()
-            self.writer.write(b'Serial connection lost.')
-            self.notifier.connection_lost()
-
-    coroutine = serial_asyncio.create_serial_connection(
-        loop,
-        lambda: Output(writer,notifier),
-        device,
-        **serial_args,
-    )
-    asyncio.ensure_future(coroutine,loop=loop)
+    loop.create_task(device_watcher(args, device_writer, backend_writer, loop))    
 
     while True:
-        data = await reader.read(1024)
-        if len(data) == 0:
-            print('device[{}]: no more data from remote[{}:{}]'.format(
-                device, backend_hostname, backend_port
-            ))
-            break
-        #print('rs>',repr(data))
-        if notifier.transport is not None:
-            notifier.transport.write(data)
+        print('Connecting to backend...')
+        try:
+            reader,writer = await connect_to_backend(
+                args.backend_hostname,
+                args.backend_port,
+                args.title,
+                loop
+            )
+        except Exception as e:
+            print(e.__class__.__name__,e)
+            await asyncio.sleep(5)
+            continue
 
-    writer.close()
+        backend_writer.connection_made(writer)
+
+        while True:
+            data = await reader.read(1024)
+            if len(data) == 0:
+                print('device[{}]: no more data from remote[{}:{}]'.format(
+                    device, backend_hostname, backend_port
+                ))
+                break
+
+            device_writer.write(data)
+
+        backend_writer.connection_lost()
+
+        reader.close()
+        writer.close()
 
 async def shutdown(sig, loop):
     print('caught {0}'.format(sig.name))
@@ -101,16 +154,6 @@ if __name__ == '__main__':
             )
         )
 
-    loop.create_task(tcp_remote_client(
-        device=args.device,
-        title=args.title,
-        loop=loop,
-        backend_hostname=args.backend_hostname,
-        backend_port=args.backend_port,
-        serial_args={
-            'baudrate':args.baudrate,
-            'rtscts':False,
-        },
-    ))
+    loop.create_task(server(args,loop))
 
     loop.run_forever()
