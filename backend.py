@@ -173,6 +173,7 @@ class RemoteManager(object):
             data = await reader.read(1024)
             #print('!',repr(data))
             if len(data) == 0:
+                print('remote[{}] has been lost'.format(title))
                 break
 
             ws_clients = self.consoles[title][1]
