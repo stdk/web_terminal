@@ -95,7 +95,7 @@ async def server(args,loop):
             )
         except Exception as e:
             print(e.__class__.__name__,e)
-            await asyncio.sleep(5)
+            await asyncio.sleep(10)
             continue
 
         backend_writer.connection_made(writer)
