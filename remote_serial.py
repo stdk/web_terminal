@@ -104,7 +104,7 @@ async def server(args,loop):
             data = await reader.read(1024)
             if len(data) == 0:
                 print('device[{}]: no more data from remote[{}:{}]'.format(
-                    device, backend_hostname, backend_port
+                    args.device, args.backend_hostname, args.backend_port
                 ))
                 break
 
