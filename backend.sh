@@ -7,7 +7,6 @@ WORKDIR=$(dirname $(readlink -f $0))
 case "$1" in
 start)
     daemon start backend python backend.py
-    [ "$?" -eq 0 ] && sleep 3
     ;;
 stop)
     daemon stop backend
