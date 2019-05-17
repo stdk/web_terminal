@@ -70,8 +70,56 @@
    "background": "#272822"
   })
 
+  var forestTheme = convertTheme({
+    "color": [
+     "#1b1918",
+     "#f22c40",
+     "#5ab738",
+     "#d5911a",
+     "#407ee7",
+     "#6666ea",
+     "#00ad9c",
+     "#a8a19f",
+     "#766e6b",
+     "#f22c40",
+     "#5ab738",
+     "#d5911a",
+     "#407ee7",
+     "#6666ea",
+     "#00ad9c",
+     "#f1efee"
+   ],
+   "foreground": "#a8a19f",
+   "background": "#1b1918"
+  })
+
+  var phrak1Theme = convertTheme({
+    "color": [
+     "#000000",
+     "#a80000",
+     "#00a800",
+     "#a85400",
+     "#0000a8",
+     "#a800a8",
+     "#00a8a8",
+     "#a8a8a8",
+     "#545054",
+     "#f85450",
+     "#50fc50",
+     "#f8fc50",
+     "#5054f8",
+     "#f854f8",
+     "#50fcf8",
+     "#f8fcf8"
+   ],
+   "foreground": "#a8a8a8",
+   "background": "#000000"
+  })
+
   document.themes = {
     "green": greenTheme,
     "monokai": monokaiTheme,
+    'forest':forestTheme,
+    'phrak1':phrak1Theme,
   }
 })()
