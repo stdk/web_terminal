@@ -161,16 +161,35 @@ class RemoteManager(object):
             return
 
         writer,ws_clients = self.consoles[title]
-        ws_clients.remove(ws_client)
+        try:
+            ws_clients.remove(ws_client)
+        except ValueError as e:
+            print('remove_ws_client: could not remove ws_client for title[{}]'.format(title))
         print('clients for[{}]:[{}]'.format(title,ws_clients))
 
     async def new_remote(self,reader,writer):
         title = await reader.readline()
         title = title.decode('utf-8', 'replace')[:-1]
 
+        async def safe_read(reader, size):
+            try:
+                return await reader.read(size)
+            except TimeoutError as e:
+                print("safe_read[{}]:{}".format(e.__class__.__name__,e))
+                print('safe_read from reader[{}] failed with timeout'.format(reader))
+
+        async def safe_send(client, data):
+            if client.closed:
+                return
+
+            try:
+                await client.send_str(data.decode('utf-8', 'replace'))
+            except ConnectionResetError as e:
+                print("safe_send[{}]:{}".format(e.__class__.__name__,e))
+
         self.consoles[title] = [writer,[]]
         while True:
-            data = await reader.read(1024)
+            data = await safe_read(reader, 1024)
             #print('!',repr(data))
             if len(data) == 0:
                 print('remote[{}] has been lost'.format(title))
@@ -178,9 +197,8 @@ class RemoteManager(object):
 
             ws_clients = self.consoles[title][1]
 
-            for ws_client in ws_clients:
-                if not ws_client.closed:
-                    await ws_client.send_str(data.decode('utf-8', 'replace'))
+            transmissions = (safe_send(client, data) for client in ws_clients)
+            await asyncio.gather(*transmissions, return_exceptions=True)
 
         ws_clients = self.consoles[title][1]
         for ws_client in ws_clients:
