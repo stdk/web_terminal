@@ -19,8 +19,13 @@ class Writer(object):
         self._lost.set_result(True)
 
     def write(self, *args, **kwargs):
-        if self.transport is not None:
-            return self.transport.write(*args,**kwargs)
+        if self.transport is None:
+            return
+
+        if self.transport.is_closing():
+            return
+
+        return self.transport.write(*args,**kwargs)
 
     def lost(self):
         return self._lost
@@ -38,7 +43,6 @@ class Protocol(asyncio.Protocol):
         self.device_writer.connection_made(transport)
 
     def data_received(self, data):
-        #print('data received', repr(data))
         self.backend_writer.write(data)
 
     def connection_lost(self, exc):
@@ -101,7 +105,12 @@ async def server(args,loop):
         backend_writer.connection_made(writer)
 
         while True:
-            data = await reader.read(1024)
+            try:
+                data = await reader.read(1024)
+            except ConnectionResetError as e:
+                print(e.__class__.__name__,e)
+                break
+
             if len(data) == 0:
                 print('device[{}]: no more data from remote[{}:{}]'.format(
                     args.device, args.backend_hostname, args.backend_port
@@ -112,7 +121,6 @@ async def server(args,loop):
 
         backend_writer.connection_lost()
 
-        reader.close()
         writer.close()
 
 async def shutdown(sig, loop):
