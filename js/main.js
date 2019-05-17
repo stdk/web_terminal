@@ -46,6 +46,11 @@
       list_element.innerHTML = ''
 
       available = response.available
+
+      available.sort(function(a, b){
+        return a.title.localeCompare(b.title, undefined, {numeric: true, sensitivity: 'base'})
+      });
+
       for(var i=0;i<available.length;++i) {
         let entry = available[i]
         let title = entry.title
