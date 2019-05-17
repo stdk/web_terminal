@@ -74,20 +74,22 @@
       }
       var buttons = document.getElementsByClassName('console_button')
       for(var i=0;i<buttons.length;++i) {
-        var button = buttons[i]
-        var path = available[i].path
-        button.addEventListener('click',function(path) {
+        let button = buttons[i]
+        let entry = available[i]
+        console.log(entry)
+        button.addEventListener('click',function(entry) {
             return function() {
+              window.document.title = entry.title
               term.detach()
               term.clear()
               term.reset()
               
-              var console_ws = new WebSocket(ws_base_path + path)
+              var console_ws = new WebSocket(ws_base_path + entry.path)
               term.attach(console_ws)
 
               term.focus()
             }
-        }(path))
+        }(entry))
       }        
     })
   } else {
