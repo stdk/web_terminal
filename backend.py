@@ -196,10 +196,11 @@ class RemoteManager(object):
                 print('remote[{}] has been lost'.format(title))
                 break
 
-            ws_clients = self.consoles[title][1]
+            if title in self.consoles:
+                ws_clients = self.consoles[title][1]
 
-            transmissions = (safe_send(client, data) for client in ws_clients)
-            await asyncio.gather(*transmissions, return_exceptions=True)
+                transmissions = (safe_send(client, data) for client in ws_clients)
+                await asyncio.gather(*transmissions, return_exceptions=True)
 
         ws_clients = self.consoles[title][1]
         for ws_client in ws_clients:
