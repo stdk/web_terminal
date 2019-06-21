@@ -174,9 +174,10 @@ class RemoteManager(object):
         async def safe_read(reader, size):
             try:
                 return await reader.read(size)
-            except TimeoutError as e:
+            except (TimeoutError,ConnectionResetError) as e:
                 print("safe_read[{}]:{}".format(e.__class__.__name__,e))
-                print('safe_read from reader[{}] failed with timeout'.format(reader))
+                print('safe_read from reader[{}] failed[{}]'.format(reader, e))
+                return ''
 
         async def safe_send(client, data):
             if client.closed:
@@ -184,7 +185,7 @@ class RemoteManager(object):
 
             try:
                 await client.send_str(data.decode('utf-8', 'replace'))
-            except ConnectionResetError as e:
+            except (TimeoutError,ConnectionResetError) as e:
                 print("safe_send[{}]:{}".format(e.__class__.__name__,e))
 
         self.consoles[title] = [writer,[]]
