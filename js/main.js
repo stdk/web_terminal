@@ -21,6 +21,7 @@
   });
 
   var term_element = document.getElementById('terminal')
+  console.log(term_element.offsetHeight);
   term.open(term_element)
   term.fit()
 
@@ -28,8 +29,7 @@
   var list_element = document.getElementById('list')
 
   if(location.pathname == '/') {
-    list_element.style.height = '8vh'
-    term_element.style.height = '90vh'
+    term_element.style.height = '94%'
     term.fit()
 
     var ws = new WebSocket(ws_base_path + '/list')
@@ -63,6 +63,10 @@
                                   '</button>' +
                                   '</div>'
       }
+      //list_element.style.display = 'none'
+      /*list_element.style.display = 'flex'
+      list_element.style.display = 'none'*/
+      list_element.style.display = 'flex'
 
       for(var i=0;i<available.length;++i) {
         let entry = available[i]
@@ -77,14 +81,24 @@
           }))
         }, false);
       }
+
+      var selectedButton = undefined
+
       var buttons = document.getElementsByClassName('console_button')
       for(var i=0;i<buttons.length;++i) {
         let button = buttons[i]
         let entry = available[i]
         console.log(entry)
-        button.addEventListener('click',function(entry) {
+        button.addEventListener('click',function(button,entry) {
             return function() {
               window.document.title = entry.title
+              if (selectedButton)  {
+                selectedButton.classList.remove('selected')
+              }
+
+              button.classList.add('selected')
+              selectedButton = button
+
               term.detach()
               term.clear()
               term.reset()
@@ -94,7 +108,7 @@
 
               term.focus()
             }
-        }(entry))
+        }(button,entry))
       }        
     })
   } else {

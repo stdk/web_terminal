@@ -4,18 +4,67 @@
     <link rel="stylesheet" href="xterm.js/xterm.css" />
     <style media="screen" type="text/css">
     #list button {
-      font-size: 5vh;
+      font-size: 2.4vh;
+    }
+
+    html {
+      height: 100%;
+    }
+
+    body {
+      height: 100%;
+      width: 100%;
+      margin: 0 0 0 0;
+    }
+
+    #content {
+      background-color: black;
+      height: 100%;
     }
 
     #terminal {
-      font-size: 2vh;
-      width: auto;
-      height: 97vh;
+      height: 100%;
+    }
+
+    .xterm-viewport::-webkit-scrollbar {
+      background-color: darkgray;
+      width: 20px;
+    }
+
+    .xterm-viewport::-webkit-scrollbar-thumb {
+        background-color: darkgreen;
+    }
+
+    .console_button {
+      background-color: black;
+      color: white;
+      display: flex;
+      margin-left: 2px;
+      border-radius:2px;
+      border:1px solid #18ab29;
+      cursor:pointer;
+      font-family:monospace;
+    }
+
+    .selected {
+      border:1px solid red;
     }
 
     #list {
-      display: flex;
-      flex-direction: row;
+      color: white;
+      overflow-x: auto;
+      overflow-y: hidden;
+      display: none;
+      flex-flow: row;
+    }
+
+    #list::-webkit-scrollbar {
+      background-color: darkgray;
+      height: 5px;
+    }
+
+    #list::-webkit-scrollbar-thumb {
+        background-color: darkgreen;
     }
 
     </style>
@@ -24,8 +73,10 @@
     <script src="xterm.js/addons/attach/attach.js"></script>
   </head>
   <body>
-    <div id='list'></div>
-    <div id="terminal"></div>
+    <div id="content">
+      <div id='list'></div>
+      <div id="terminal"></div>
+    </div>
     <script src="js/theme.js"></script>
     <script src="js/main.js"></script>
   </body>
