@@ -27,6 +27,12 @@ class Writer(object):
 
         return self.transport.write(*args,**kwargs)
 
+    def send_break(self):
+        if self.transport is None:
+            return
+
+        self.transport.serial.send_break()
+
     def lost(self):
         return self._lost
 
@@ -69,18 +75,68 @@ async def device_watcher(args, device_writer, backend_writer, loop):
         )
 
         try:
-            await coroutine
+            transport, protocol = await coroutine
         except serial.serialutil.SerialException:
             print('file not found')
             await asyncio.sleep(2)
             continue
 
-        print('waiting for lost connection')
+        print('Transport[{}]'.format(transport))
+        print('Protocol[{}]'.format(protocol))
+
+        print('Waiting for connection loss..')
         await device_writer.lost()
-        print('connection has been lost')
+        print('Connection to {} has been lost'.format(args.device))
         device_writer.reset()
         await asyncio.sleep(2)
         
+
+class Controller(object):
+    command_length_limit = 1
+
+    def __init__(self, device, device_writer):
+        self.device = device
+        self.device_writer = device_writer
+        self.commands = {
+            b'\x01': self.ctrl_a,
+            b'f': self.reset,
+        }
+        self.buffer = None
+
+    def add_to_buffer(self, data):
+        self.buffer += data
+        command = self.commands.get(self.buffer, None)
+        if command is not None:
+            command()
+            self.buffer = None
+            return b''
+
+        if len(self.buffer) >= self.command_length_limit:
+            result = self.buffer
+            self.buffer = None
+            return result
+
+        return b''
+
+    def process(self, data):
+        if len(data) != 1:
+            return data
+
+        if self.buffer is None:
+            if data == b'\x01':
+                self.buffer = b''
+                return b''
+        else:
+            return self.add_to_buffer(data)
+
+        return data
+
+    def ctrl_a(self):
+        self.device_writer.write(b'\x01')
+
+    def reset(self):
+        self.device_writer.send_break()
+
 
 async def server(args,loop):
     backend_writer = Writer('backend',loop)
@@ -104,6 +160,8 @@ async def server(args,loop):
 
         backend_writer.connection_made(writer)
 
+        controller = Controller(args.device, device_writer)
+
         while True:
             try:
                 data = await reader.read(1024)
@@ -116,6 +174,8 @@ async def server(args,loop):
                     args.device, args.backend_hostname, args.backend_port
                 ))
                 break
+
+            data = controller.process(data)
 
             device_writer.write(data)
 
@@ -147,7 +207,7 @@ if __name__ == '__main__':
                             help='Backend hostname')
     arg_parser.add_argument('-p','--backend-port',type=int,
                             dest='backend_port', default=8888,
-                            help='Backend hostname')
+                            help='Backend port')
     args = arg_parser.parse_args()
 
     loop = asyncio.get_event_loop()
