@@ -5,6 +5,10 @@
 import asyncio
 import websockets
 import os
+import sys
+
+def restore_console():    
+    os.system('stty cooked echo')
 
 async def get_stdin():
     import sys
@@ -14,7 +18,7 @@ async def get_stdin():
     return reader
 
 async def shutdown(loop):
-    os.system('stty cooked echo')
+    restore_console()
     
     tasks = [task for task in asyncio.Task.all_tasks() if task is not
              asyncio.tasks.Task.current_task()]
@@ -73,10 +77,17 @@ async def writer(websocket, reader):
     stdin = await get_stdin()    
 
     controller = Controller(reader)
-    while True:
-        data = await stdin.read(100)
-        data = controller.process(data)
-        await websocket.send(data.decode('utf8', 'replace'))
+    try:
+        while True:
+            data = await stdin.read(100)
+            data = controller.process(data)
+            await websocket.send(data.decode('utf8', 'replace'))
+    except websockets.exceptions.ConnectionClosed as e:
+        restore_console()
+        print()
+        print(e)
+        os.kill(os.getpid(), signal.SIGINT)
+
 
 async def reader(websocket):
     import sys
@@ -91,7 +102,7 @@ async def reader(websocket):
 async def start(uri, loop):
     try:
         websocket = await websockets.connect(uri)
-    except websockets.exceptions.InvalidHandshake as e:
+    except (websockets.exceptions.InvalidHandshake,websockets.exceptions.InvalidURI) as e:
         print('Cannot connect to[{}] ({})'.format(uri,e))
         os.kill(os.getpid(), signal.SIGINT)
         return
@@ -103,12 +114,26 @@ async def start(uri, loop):
 if __name__ == '__main__':
     import argparse
     arg_parser = argparse.ArgumentParser()
-    # ws://192.168.1.27:8000/ws/remote?title=dut6
-    arg_parser.add_argument('-u','--uri',type=str, required=True,
+    
+    arg_parser.add_argument('-u','--uri',type=str,
+                            help='Websocket console URL')
+    arg_parser.add_argument('-t','--title',type=str,
                             help='Websocket console URL')
     args = arg_parser.parse_args()
 
     loop = asyncio.get_event_loop()
+
+    if args.title is None and args.uri is None:
+        print('Either --uri or --title must be present')
+        sys.exit(1)
+
+    if args.uri is not None:
+        uri = args.uri
+
+    if args.title is not None:
+        uri = 'ws://192.168.1.27:8000/ws/remote?title={}'.format(args.title)
+
+    print('URI: {}'.format(uri))
 
     import signal, functools
     for s in [signal.SIGINT]:
@@ -120,5 +145,12 @@ if __name__ == '__main__':
             )
         )
 
-    loop.create_task(start(args.uri,loop))
-    loop.run_forever()
+    loop.create_task(start(uri,loop))
+
+    try:
+        loop.run_forever()
+    except Exception as e:
+        restore_console()
+        print(e.__class__,e)
+
+    restore_console()
