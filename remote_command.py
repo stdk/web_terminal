@@ -10,8 +10,8 @@ async def connect_to_backend(host, port, title, loop):
 
     return reader,writer
 
-async def tcp_remote_client(args, loop):
-    reader, writer = await connect_to_backend(args.backend_hostname, 
+async def endpoint(args, loop):
+    reader, writer = await connect_to_backend(args.backend_hostname,
                                               args.backend_port,
                                               args.title,
                                               loop=loop)
@@ -42,6 +42,16 @@ async def tcp_remote_client(args, loop):
 
     writer.close()
 
+
+async def tcp_remote_client(args, loop):
+    while True:
+        try:
+             await endpoint(args, loop)
+        except (ConnectionRefusedError,ConnectionResetError,TimeoutError) as e:
+             print(e.__class__.__name__,e)
+        await asyncio.sleep(10)
+
+
 async def shutdown(sig, loop):
     print('caught {0}'.format(sig.name))
     tasks = [task for task in asyncio.Task.all_tasks() if task is not
@@ -61,7 +71,7 @@ if __name__ == '__main__':
                             dest='backend_hostname', default='127.0.0.1',
                             help='Backend hostname')
     arg_parser.add_argument('-p','--backend-port',type=int,
-                            dest='backend_port', default=8888,
+                            dest='backend_port', default=9999,
                             help='Backend port')
     arg_parser.add_argument('-c','--command',type=str,
                             dest='command', default="/bin/bash",

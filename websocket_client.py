@@ -131,7 +131,7 @@ if __name__ == '__main__':
         uri = args.uri
 
     if args.title is not None:
-        uri = 'ws://192.168.1.27:8000/ws/remote?title={}'.format(args.title)
+        uri = 'ws://10.36.11.31:8000/ws/remote?title={}'.format(args.title)
 
     print('URI: {}'.format(uri))
 
